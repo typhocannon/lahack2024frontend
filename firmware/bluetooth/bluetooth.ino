@@ -64,19 +64,15 @@ class MyCallbacks: public BLECharacteristicCallbacks {
             Serial.println();
             if (value == "0") {
               Serial.println("Zero");
-              triggerPin(1, vibrationPinLeft);
+              triggerPin(1, vibration);
             }
             if (value == "1") {
               Serial.println("One");
-              triggerPin(1, vibrationPinRight);
+              triggerPin(1, heat);
             }
             if (value == "2") {
               Serial.println("Two");
-              triggerPin(1, heatPinLeft);
-            }
-            if (value == "3") {
-              Serial.println("Three");
-              triggerPin(1, heatPinRight);
+              triggerPin(1, vest);
             }
         }
     }
@@ -87,11 +83,9 @@ void setup() {
   Serial.begin(115200);
   Serial.println("Starting BLE application");
 
-  pinMode(vibrationPinLeft, OUTPUT);
-  pinMode(vibrationPinRight, OUTPUT);
-
-  pinMode(heatPinLeft, OUTPUT);
-  pinMode(heatPinRight, OUTPUT);
+  pinMode(vibration, OUTPUT);
+  pinMode(heat, OUTPUT);
+  pinMode(vest, OUTPUT);
 
   // Create the BLE Device
   BLEDevice::init(bleServerName);
