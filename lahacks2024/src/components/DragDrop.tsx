@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { FileUploader } from "react-drag-drop-files";
 import { Button } from "@mui/material";
 import axios from "axios";
@@ -51,6 +51,9 @@ function DragDrop() {
       // check if the current timestamp is in the action list thing, if so then do something
       for(const item of timeStampDict) {
         if (formattedTime == item.timestamp) {
+          if (socket) {
+            socket.send(`${item.action}-${item.body_part}`);
+          }
           console.log("do something")
         }
       }
@@ -83,6 +86,17 @@ function DragDrop() {
       console.log('No file selected');
     }
   }
+
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+
+  useEffect(() => {
+    const socket = new WebSocket("ws://localhost:5000/ws");
+    // Connection opened
+    socket.addEventListener("open", (event) => {
+      console.log("Connection established");
+      setSocket(socket);
+    });
+  }, []);
 
   return (
     <div className="flex flex-col items-center justify-center m-5">
