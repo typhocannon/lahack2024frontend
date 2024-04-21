@@ -5,6 +5,16 @@
 
 //BLE server name
 #define bleServerName "Haptic Definition: Hands"
+// #define bleServerName "Haptic Definition: Vest"
+
+// See the following for generating UUIDs:
+// https://www.uuidgenerator.net/
+// hands
+#define SERVICE_UUID "7ce72a1c-aaee-490e-bc6d-abb82854e460"
+
+// vest
+// #define SERVICE_UUID "102f11a4-1503-4f0f-b98b-f587bd4bd7f4"
+
 
 // Timer variables
 unsigned long lastTime = 0;
@@ -12,18 +22,15 @@ unsigned long timerDelay = 30000;
 
 bool deviceConnected = false;
 
-// See the following for generating UUIDs:
-// https://www.uuidgenerator.net/
-#define SERVICE_UUID "91bad492-b950-4226-aa2b-4ede9fa42f59"
+
 
 
 BLECharacteristic bleTestCharacteristics("cba1d466-344c-4be3-ab3f-189f80dd7518", BLECharacteristic::PROPERTY_WRITE);
 BLEDescriptor bleTestDescriptor(BLEUUID((uint16_t)0x2902));
 
-const int vibrationPinLeft = 4;
-const int vibrationPinRight = 5;
-const int heatPinLeft = 6;
-const int heatPinRight = 7;
+const int vibration = 4;
+const int heat = 5;
+const int vest = 6;
 
 void triggerPin(int seconds, int pin) {
   // GPIO

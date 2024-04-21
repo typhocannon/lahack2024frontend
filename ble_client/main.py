@@ -74,20 +74,45 @@ async def main_client(uri):
                     else:
                         print("Invalid body part specified in command. Skipping.")
 
-                    if action == "hot" and part == "chest":
-                        # not implemented, skip
-                        device_name = ""
-                    elif action == "impact":
-                        if part == "left_hand" or part == "chest":
-                            message = "0"
-                        elif part == "right_hand":
+                    # determine body part
+                    if part == "chest":
+                        # hardcode 
+                        message = "2"
+                        print("Writing to device", device_name, "with message", message)
+                        for device in haptic_devices:
+                            device_info = haptic_devices[device]
+                            client = device_info["client"]
+                            characteristics = device_info["client_characteristics"]
+                            for characteristic in characteristics:
+                                await client.write_gatt_char(characteristic.uuid, message.encode('utf-8'), response=False)
+                        continue
+                    elif part == "left_hand":
+                        if action == "hot":
                             message = "1"
-                    elif action == "hot":
-                        if part == "left_hand":
-                            message = "2"
-                        elif part == "right_hand":
-                            message = "3"
-                                    # Check if the message is in bytes, decode for printing, send as is for GATT char
+                        else:
+                            # impact
+                            message = "0"
+                    elif part == "right_hand":
+                        if action == "hot":
+                            message = "1"
+                        else:
+                            # impact
+                            message = "0"
+
+                    # if action == "hot" and part == "chest":
+                    #     # not implemented, skip
+                    #     device_name = ""
+                    # elif action == "impact":
+                    #     if part == "left_hand":
+                    #         message = "0"
+                    #     elif part == "right_hand" or part == "chest":
+                    #         message = "1"
+                    # elif action == "hot":
+                    #     if part == "left_hand":
+                    #         message = "2"
+                    #     elif part == "right_hand":
+                    #         message = "3"
+                    #                 # Check if the message is in bytes, decode for printing, send as is for GATT char
                     print(haptic_devices)
                     print(len(device_name))
                     print(device_name in haptic_devices)
