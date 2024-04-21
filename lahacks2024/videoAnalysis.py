@@ -163,23 +163,15 @@ async def analyzeVideo(file: UploadFile = File(...)):
   # Make the LLM request.
   request = make_request(prompt, uploadedFiles)
   response = model.generate_content(request, request_options={"timeout": 600})
-  # return(response)
-  # print(response)
   
-  # # return {JSONResponse(response)}
-  # return {"finished" : "anaylzed"}
+  # Strip the non-JSON parts
+  json_string = response.text.strip('```json\n').strip('```')
+        
+  print(json_string)
   
-  # Parse the JSON content from the response
-  json_content = response.result.candidates[0].content.parts[0].text
+  data = json.loads(json_string)
   
-  # Removing markdown code block syntax if present
-  json_content = json_content.replace('```json\n', '').replace('\n```', '').strip()
-  
-  # Convert the string back to a JSON object
-  json_response = json.loads(json_content)
-  
-  # Return the JSON object as the response
-  return json_response
+  return data
 
 if __name__ == "__main__":
   uvicorn.run(app, host="0.0.0.0", port=10000)
