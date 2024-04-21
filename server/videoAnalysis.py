@@ -4,7 +4,7 @@ import os
 import shutil
 from dotenv import load_dotenv
 from datetime import datetime
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, File, UploadFile, WebSocket
 import uvicorn
 import json
 
@@ -173,5 +173,12 @@ async def analyzeVideo(file: UploadFile = File(...)):
   
   return data
 
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await websocket.accept()
+    while True:
+        data = await websocket.receive_text()
+        await websocket.send_text(f"Message text was: {data}")
+
 if __name__ == "__main__":
-  uvicorn.run(app, host="0.0.0.0", port=10000)
+  uvicorn.run(app, host="127.0.0.1", port=5000)
