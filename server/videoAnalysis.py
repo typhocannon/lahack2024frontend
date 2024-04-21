@@ -123,6 +123,7 @@ async def analyzeTest(file: UploadFile = File(...)):
 
 @app.post("/upload")
 async def analyzeVideo(file_sent: UploadFile = File(...)): 
+  print("connected & starting upload\n")
   # Define a temporary file path
   temp_file_path = f"temp/{file_sent.filename}"
   temp_frame_path = "tempframes/"
@@ -167,7 +168,19 @@ async def analyzeVideo(file_sent: UploadFile = File(...)):
   shutil.rmtree(temp_frame_path)
 
   # Create the prompt. {timestamp: <given_timestamp>, action: <vibrate, hot, cold, none>, body_part: {chest, left_hand, right_hand, none}}
-  prompt = "You are going to be given frames of a video. In the video you will have to figure out who is the main character of the scene. Once you figure out who the main character is, recognize their environmental surrounds and see if it is hot or cold. Decipher if the character is experiencing a physical impact in either their right hand, left hand, or chest area. If they experience a physical impact return a json file that has the timestamp of the action, the type of action emitted (hot, cold, impact, none) and where the impact happened (left hand, right hand, chest). If nothing happend put none. Here is the json format {timestamp: <given_timestamp>, action: <vibrate, hot, cold, none>, body_part: {chest, left_hand, right_hand, none}}"
+  prompt = """You are going to be given frames of a video. Recognize the environmental surroundings of the video and see if it is hot or cold or shaking. Decipher if the character is experiencing a physical impact (getting hit, pushed, etc) in either their right hand/arm, left hand/arm, or upper body torso area.
+  
+  A physical impact can be a punch, kick, push, gun shot, and any movement enacted on the character that causes them to shift/move.
+  
+  If they experience a physical impact return a json file that has the timestamp of the action, the type of action emitted (hot, cold, impact, none) and where the impact happened (left hand, right hand, chest).
+  
+  Return only an array with items that follow this JSON format and the given properties in the type string. {timestamp: <timestamp_of_when_action_occured minutes: seconds>, action: <vibrate, hot, cold, none>, body_part: {chest, left_hand, right_hand, none}}.
+  
+  Give me at least two timestamps in an array format.
+  
+  Here is an example: 
+  [{timestamp: 00:01, action: vibrate, body_part: chest}, {timestamp: 01:02, action: hot, body_part: right_hand}}]
+  """
 
   # Set the model to Gemini 1.5 Pro.
   model = genai.GenerativeModel(model_name="models/gemini-1.5-pro-latest")
@@ -182,6 +195,8 @@ async def analyzeVideo(file_sent: UploadFile = File(...)):
   print(json_string)
   
   data = json.loads(json_string)
+  
+  
   
   return data
 
