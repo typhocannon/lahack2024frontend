@@ -3,7 +3,7 @@ import websockets
 from bleak import BleakClient, BleakScanner
 
 haptic_devices = {}
-haptic_definition_client_names = {"Haptic Definition: Right Hand", "Haptic Definition: Vest"}
+haptic_definition_client_names = {"Haptic Definition: Hands", "Haptic Definition: Vest"}
 
 async def connect_and_setup_device(device):
     client = BleakClient(device)
@@ -49,7 +49,7 @@ async def main_client(uri):
                 print("Received message:", message)
                 # determine which device to broadcast the message to
                 if message == "ping":
-                    
+
                     # broadcast the message to all haptic devices
                     for device_name, device_info in haptic_devices.items():
                         client = device_info["client"]

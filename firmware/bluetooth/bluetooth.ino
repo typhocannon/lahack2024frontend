@@ -4,7 +4,7 @@
 #include <BLE2902.h>
 
 //BLE server name
-#define bleServerName "Haptic Definition: Vest"
+#define bleServerName "Haptic Definition: Hands"
 
 // Timer variables
 unsigned long lastTime = 0;
