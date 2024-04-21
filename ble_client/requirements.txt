@@ -1,0 +1,4 @@
+bleak==0.21.1
+pip-chill==1.0.3
+rel==0.4.9.9
+websockets==12.0
