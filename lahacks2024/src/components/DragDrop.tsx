@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import { FileUploader } from "react-drag-drop-files";
 import { Button } from "@mui/material";
+import Alert from '@mui/material/Alert';
 import axios from "axios";
 import { useMemo } from "react";
 
 const fileTypes: string[] = ["MP4"];
 
 function DragDrop() {
+  const [alertProcess, setAlertProcess] = useState(false)
+  const [alertFinish, setAlertFinish] = useState(false)
   const [mp4file, setFile] = useState<File | null>(null);
   const [currentTime, setCurrentTime] = useState("00:00")
   const [timeStampDict, setTimeStampDict] = useState<[{timestamp: string, action: string, body_part: string}]>([{
@@ -32,6 +35,8 @@ function DragDrop() {
   const formatTime = (timeInSeconds: number): string => {
     const minutes = Math.floor(timeInSeconds / 60);
     const seconds = Math.floor(timeInSeconds % 60);
+
+    // add delay is - seconds?
     const formattedMinutes = minutes.toString().padStart(2, '0');
     const formattedSeconds = seconds.toString().padStart(2, '0');
     return `${formattedMinutes}:${formattedSeconds}`;
@@ -62,6 +67,11 @@ function DragDrop() {
 
   const sendFile = async () => {
     if (mp4file) {
+      // setAlertProcess(true)
+
+      alert("File needs to be processed. Please wait patiently. Another alert will pop up once it is finished processing.")
+
+
       const formData = new FormData();
       formData.append("file_sent", mp4file);
       console.log(Array.from(formData))
@@ -78,6 +88,9 @@ function DragDrop() {
 
         console.log(newData)
         setTimeStampDict(newData);
+
+        alert("File is done processing! You can now watch the video in HD.")
+        // setAlertFinish(true)
 
       } catch (error) {
         console.error('Error uploading file', error);
@@ -100,6 +113,16 @@ function DragDrop() {
 
   return (
     <div className="flex flex-col items-center justify-center m-5">
+      {/* {alertProcess && (
+        <Alert severity="warning" onClose={() => {setAlertProcess(false)}}>
+          Video is being processed, please wait a little. Another pop-up will appear when finished.
+        </Alert>
+      )}
+      {alertFinish&& (
+        <Alert severity="success" onClose={() => {setAlertFinish(false)}}>
+          File is done processing! You can now watch the video in HD.
+        </Alert>
+      )} */}
       <FileUploader handleChange={handleChange} name="file" types={fileTypes} />
       {mp4file && (
         <div className="text-center">
