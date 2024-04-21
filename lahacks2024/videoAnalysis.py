@@ -7,8 +7,17 @@ from datetime import datetime
 from fastapi import FastAPI, File, UploadFile
 import uvicorn
 import json
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # This allows all domains
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods
+    allow_headers=["*"],  # Allows all headers
+)
 
 load_dotenv()
 
@@ -110,9 +119,9 @@ async def analyzeTest(file: UploadFile = File(...)):
     }
 
 @app.post("/upload")
-async def analyzeVideo(file: UploadFile = File(...)): 
+async def analyzeVideo(file_sent: UploadFile = File(...)): 
   # Define a temporary file path
-  temp_file_path = f"temp/{file.filename}"
+  temp_file_path = f"temp/{file_sent.filename}"
   temp_frame_path = "tempframes/"
   
   # Create the temporary directory if it doesn't exist
@@ -122,7 +131,7 @@ async def analyzeVideo(file: UploadFile = File(...)):
   
   # Save the uploaded video file to disk
   with open(temp_file_path, 'wb') as f:
-      f.write(await file.read())
+      f.write(await file_sent.read())
   
   print("GETTING FRAMES")
   getCurrentTime()
