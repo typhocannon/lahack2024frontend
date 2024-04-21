@@ -4,7 +4,7 @@ import os
 import shutil
 from dotenv import load_dotenv
 from datetime import datetime
-from fastapi import FastAPI, File, UploadFile, WebSocket
+from fastapi import FastAPI, File, UploadFile, WebSocket, WebSocketDisconnect
 import uvicorn
 import json
 
@@ -14,6 +14,9 @@ load_dotenv()
 
 # configuring gemini with API key
 genai.configure(api_key=os.environ.get('GOOGLE_API_KEY'))
+
+clients = {}
+current_client_id = 0
 
 def get_timestamp(file_name):
   name_split = file_name.split('_')
@@ -176,9 +179,23 @@ async def analyzeVideo(file: UploadFile = File(...)):
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
-    while True:
+    # add the client to the clients dictionary
+    global current_client_id
+    clients[current_client_id] = websocket
+    current_client_id += 1
+    try:
+      while True:
         data = await websocket.receive_text()
         await websocket.send_text(f"Message text was: {data}")
+        # broadcast the message to all clients (will be the bluetooth client)
+        for client_id, client in clients.items():
+            await client.send_text(data)
+    except WebSocketDisconnect:
+      await websocket.close()
+      # remove the client from the clients dictionary
+      for client_id, client in clients.items():
+        if client == websocket:
+          del clients[client_id]
 
 if __name__ == "__main__":
   uvicorn.run(app, host="127.0.0.1", port=5000)
