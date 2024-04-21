@@ -3,116 +3,42 @@ import cv2
 import os
 import shutil
 from dotenv import load_dotenv
+from datetime import datetime
+from fastapi import FastAPI, File, UploadFile
+import uvicorn
+import json
+
+app = FastAPI()
 
 load_dotenv()
 
 # configuring gemini with API key
 genai.configure(api_key=os.environ.get('GOOGLE_API_KEY'))
 
-# setting video file_name
-video_file_name = "wallet.mp4"
-
-# Create or cleanup existing extracted image frames directory.
-FRAME_EXTRACTION_DIRECTORY = "content/frames"
-FRAME_PREFIX = "_frame"
-
-def create_frame_output_dir(output_dir):
-  if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
+def get_timestamp(file_name):
+  name_split = file_name.split('_')
+  if len(name_split) >= 3 and name_split[2].endswith('s.jpg'):
+        # Strip the 's.jpg' to isolate the number of seconds
+        seconds_part = name_split[2][:-5]
+        # turn the seconds into MM:SS
+        int_seconds = int(seconds_part)
+        minutes = int_seconds // 60
+        seconds = int_seconds % 60
+        return f"{minutes:02}:{seconds:02}"
   else:
-    shutil.rmtree(output_dir)
-    os.makedirs(output_dir)
+      # If the format does not match, return None
+      print(f"Error: The filename '{file_name}' is not in the expected format.")
+      return None
 
-def extract_frame_from_video(video_file_path):
-  print(f"Extracting {video_file_path} at 1 frame per second. This might take a bit...")
-  create_frame_output_dir(FRAME_EXTRACTION_DIRECTORY)
-  vidcap = cv2.VideoCapture(video_file_path)
-  fps = vidcap.get(cv2.CAP_PROP_FPS)
-  frame_duration = 1 / fps  # Time interval between frames (in seconds)
-  output_file_prefix = os.path.basename(video_file_path).replace('.', '_')
-  frame_count = 0
-  count = 0
-  while vidcap.isOpened():
-      success, frame = vidcap.read()
-      if not success: # End of video
-          break
-      if int(count / fps) == frame_count: # Extract a frame every second
-          min = frame_count // 60
-          sec = frame_count % 60
-          time_string = f"{min:02d}-{sec:02d}"
-          image_name = f"{output_file_prefix}{FRAME_PREFIX}{time_string}.jpg"
-          output_filename = FRAME_EXTRACTION_DIRECTORY + "/" + image_name
-          
-          # print("output filename is: ", output_filename)
-          
-          cv2.imwrite(output_filename, frame)
-          # cv2.imshow("frame", frame)
-          # cv2.waitKey(10000000)
-          frame_count += 1
-      count += 1
-  vidcap.release() # Release the capture object\n",
-  print(f"Completed video frame extraction!\n\nExtracted: {frame_count} frames")
-
-extract_frame_from_video(video_file_name)
-
-class File:
-  def __init__(self, file_path: str, display_name: str = None):
+# File Class to change images to in order to upload to Gemini
+class FileType:
+  def __init__(self, file_path: str, display_name: str):
     self.file_path = file_path
-    if display_name:
-      self.display_name = display_name
-    self.timestamp = get_timestamp(file_path)
+    self.display_name = display_name
+    self.timestamp = get_timestamp(self.display_name)
 
   def set_file_response(self, response):
     self.response = response
-
-def get_timestamp(filename):
-  """Extracts the frame count (as an integer) from a filename with the format
-     'output_file_prefix_frame00:00.jpg'.
-  """
-  parts = filename.split(FRAME_PREFIX)
-  if len(parts) != 2:
-      return None  # Indicates the filename might be incorrectly formatted
-  return parts[1].split('.')[0]
-
-# Process each frame in the output directory
-files = os.listdir(FRAME_EXTRACTION_DIRECTORY)
-files = sorted(files)
-files_to_upload = []
-for file in files:
-    file_path_directory = FRAME_EXTRACTION_DIRECTORY + "/" + file
-    print("File path:", file_path_directory)  # Print the file path
-    files_to_upload.append(File(file_path=file_path_directory))
-
-# Upload the files to the API
-# Only upload a 10 second slice of files to reduce upload time.
-# Change full_video to True to upload the whole video.
-full_video = False
-
-uploaded_files = []
-print(f'Uploading {len(files_to_upload) if full_video else 3} files. This might take a bit...')
-
-if len(files_to_upload) == 0:
-  print("no files to upload")
-else:
-  print("there are files to upload")
-
-for file in files_to_upload:
-  print(f'Uploading: {file.file_path}...')
-  response = genai.upload_file(path=file.file_path)
-  file.set_file_response(response)
-  uploaded_files.append(file)
-
-print(f"Completed file uploads!\n\nUploaded: {len(uploaded_files)} files")
-
-# List files uploaded in the API
-for n, f in zip(range(len(uploaded_files)), genai.list_files()):
-  print(f.uri)
-
-# Create the prompt.
-prompt = "For each frame, return a json format of {timestamp: <given_timestamp>, action: <vibrate, hot, cold, none>, body_part: {chest, left_hand, right_hand, none}}, only if there is a valid action. You can tell that there is a valid action if the main character on the screen gets hit, experiences a hot or cold experience, and tell us which part of the body that they experienced that sensation (chest, left hand or right hand)" 
-
-# Set the model to Gemini 1.5 Pro.
-model = genai.GenerativeModel(model_name="models/gemini-1.5-pro-latest")
 
 # Make GenerateContent request with the structure described above.
 def make_request(prompt, files):
@@ -122,8 +48,138 @@ def make_request(prompt, files):
     request.append(file.response)
   return request
 
-# Make the LLM request.
-request = make_request(prompt, uploaded_files)
-response = model.generate_content(request,
-                                  request_options={"timeout": 600})
-print(response.text)
+# using opencv to get frames
+def get_all_frames_in_order(video_file_path, output_dir='output_frames'):
+    video_capture = cv2.VideoCapture(video_file_path)
+    frames = {}
+    prev_time = -1
+    os.makedirs(output_dir, exist_ok=True)
+
+    while True:
+        grabbed = video_capture.grab()
+        if not grabbed:
+            break
+        current_time = int(video_capture.get(cv2.CAP_PROP_POS_MSEC) / 1000)
+        if current_time > prev_time:
+            ret, frame = video_capture.retrieve()
+            if ret:
+                frame_filename = f"{output_dir}/frame_at_{current_time}s.jpg"
+                cv2.imwrite(frame_filename, frame)
+                frames[current_time] = {'frame': frame_filename, 'timestamp': current_time}
+            prev_time = current_time
+
+    video_capture.release()
+    return frames
+  
+def getCurrentTime():
+  now = datetime.now()
+  current_time = now.strftime("%H:%M:%S")
+  print("Current Time =", current_time)
+  print("\n")
+  
+def convertToFile(frame_directory):
+  files = os.listdir(frame_directory)
+  files = sorted(files)
+  files_to_upload = []
+  for file_name in files:
+    file_path = frame_directory + "/" + file_name
+    Actual_File = FileType(file_path, file_name)
+    files_to_upload.append(Actual_File)
+  return files_to_upload
+
+def uploadToGeminiFileAPI(convertedFiles):
+  uploadedFiles = []
+  for file in convertedFiles:
+      # print(f'Uploading: {file.file_path}...')
+      response = genai.upload_file(path=file.file_path)
+      file.set_file_response(response)
+      uploadedFiles.append(file)
+    
+  return uploadedFiles
+
+@app.get("/")
+def checkConnection():
+  return {"message" : "World"}
+
+@app.post("/uploadTest")
+async def analyzeTest(file: UploadFile = File(...)):
+  return {
+    "message" : "Recevied the file!",
+    "file_name" : file.filename,
+    "content_type": file.content_type,
+    }
+
+@app.post("/upload")
+async def analyzeVideo(file: UploadFile = File(...)): 
+  # Define a temporary file path
+  temp_file_path = f"temp/{file.filename}"
+  temp_frame_path = "tempframes/"
+  
+  # Create the temporary directory if it doesn't exist
+  os.makedirs(os.path.dirname(temp_file_path), exist_ok=True)
+  os.makedirs(os.path.dirname(temp_frame_path), exist_ok=True)
+  
+  
+  # Save the uploaded video file to disk
+  with open(temp_file_path, 'wb') as f:
+      f.write(await file.read())
+  
+  print("GETTING FRAMES")
+  getCurrentTime()
+  
+  # Process the video to extract frames
+  output_frames_directory = temp_frame_path
+  frames = get_all_frames_in_order(temp_file_path, output_dir=output_frames_directory)
+  
+  print("DONE GETTING FRAMES")
+  getCurrentTime()
+  
+  # DEBUG FOR FRAMES: Return information about the extracted frames
+  # return {"message": "Frames extracted", "frames": frames}
+  
+  # Optionally, clean up by removing the temporary video file
+  os.remove(temp_file_path)
+  
+  # an array that converts the files to File type
+  convertedFiles = convertToFile(temp_frame_path)
+  
+  print(f'Uploading {len(convertedFiles)} files.')
+  getCurrentTime()
+  
+  uploadedFiles = uploadToGeminiFileAPI(convertedFiles)
+  
+  print(f"Completed file uploads! Uploaded {len(uploadedFiles)} files")
+  getCurrentTime()
+
+  # clean up temp frame path
+  shutil.rmtree(temp_frame_path)
+
+  # Create the prompt. {timestamp: <given_timestamp>, action: <vibrate, hot, cold, none>, body_part: {chest, left_hand, right_hand, none}}
+  prompt = "You are going to be given frames of a video. In the video you will have to figure out who is the main character of the scene. Once you figure out who the main character is, recognize their environmental surrounds and see if it is hot or cold. Decipher if the character is experiencing a physical impact in either their right hand, left hand, or chest area. If they experience a physical impact return a json file that has the timestamp of the action, the type of action emitted (hot, cold, impact, none) and where the impact happened (left hand, right hand, chest). If nothing happend put none. Here is the json format {timestamp: <given_timestamp>, action: <vibrate, hot, cold, none>, body_part: {chest, left_hand, right_hand, none}}"
+
+  # Set the model to Gemini 1.5 Pro.
+  model = genai.GenerativeModel(model_name="models/gemini-1.5-pro-latest")
+
+  # Make the LLM request.
+  request = make_request(prompt, uploadedFiles)
+  response = model.generate_content(request, request_options={"timeout": 600})
+  # return(response)
+  # print(response)
+  
+  # # return {JSONResponse(response)}
+  # return {"finished" : "anaylzed"}
+  
+  # Parse the JSON content from the response
+  json_content = response.result.candidates[0].content.parts[0].text
+  
+  # Removing markdown code block syntax if present
+  json_content = json_content.replace('```json\n', '').replace('\n```', '').strip()
+  
+  # Convert the string back to a JSON object
+  json_response = json.loads(json_content)
+  
+  # Return the JSON object as the response
+  return json_response
+
+if __name__ == "__main__":
+  uvicorn.run(app, host="0.0.0.0", port=10000)
