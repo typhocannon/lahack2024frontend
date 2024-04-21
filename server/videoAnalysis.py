@@ -168,18 +168,12 @@ async def analyzeVideo(file_sent: UploadFile = File(...)):
   shutil.rmtree(temp_frame_path)
 
   # Create the prompt. {timestamp: <given_timestamp>, action: <vibrate, hot, cold, none>, body_part: {chest, left_hand, right_hand, none}}
-  prompt = """You are going to be given frames of a video. Recognize the environmental surroundings of the video and see if it is hot or cold or shaking. Decipher if the character is experiencing a physical impact (getting hit, pushed, etc) in either their right hand/arm, left hand/arm, or upper body torso area.
+  prompt = """You are going to be given frames of a video. You are going to return only an array with items that follow this JSON format and the given properties in the type string. {timestamp: <timestamp_of_when_action_occured in minutes:seconds format>, action: <impact, hot>, body_part: <chest, left_hand, right_hand>}.
   
-  A physical impact can be a punch, kick, push, gun shot, and any movement enacted on the character that causes them to shift/move.
+  To tell what action you should choose, in each frame pay attention to if the given surroundings are physically hot. For example, a surrounding of flames and fire will give off high temperatures, and in such is deemed to be hot. Characters can also touch hot items, such as boiling water, a hot plate, and a camp fire. Pay attention to what body part of the character touches that item as it will be returned as an item in json format. An example of what should be returned is: if there is a large evident camp fire in the video and the character puts their right hand into the fire from the time stamp of 00:05 to 00:8 the array that should be sent over is [{timestamp: 00:05, action: hot, body_part: right_hand}, {timestamp: 00:06, action: hot, body_part: right_hand}, {timestamp: 00:07, action: hot, body_part: right_hand}, {timestamp: 00:08, action: hot, body_part: right_hand}] 
   
-  If they experience a physical impact return a json file that has the timestamp of the action, the type of action emitted (hot, cold, impact, none) and where the impact happened (left hand, right hand, chest).
-  
-  Return only an array with items that follow this JSON format and the given properties in the type string. {timestamp: <timestamp_of_when_action_occured minutes: seconds>, action: <vibrate, hot, cold, none>, body_part: {chest, left_hand, right_hand, none}}.
-  
-  Give me at least two timestamps in an array format.
-  
-  Here is an example: 
-  [{timestamp: 00:01, action: vibrate, body_part: chest}, {timestamp: 01:02, action: hot, body_part: right_hand}}]
+  Another way to tell which action you should choose is to see if any physical impact (it can be a punch, kick, push, gun shot, sword/weapon clash, or any movement enacted on the character that causes them to shift/move) has effected the character(s) in the frame. Generally, two characters fighting on screen will result in the action: impact. Pay attention to which body part the impact happens on, if the impact was made with the left_hand, the body part is the left hand, if it was made with the right_hand the body part if the right hand, if one is hit in the chest then the body part is the chest. An example of what should be returned if the character punches someone with their left hand and it hits/makes contact the opponent from time stamp of 01:04 to 01:06 the array that should be returned is [{timestamp: 01:04, action: impact, body_part: left_hand}, {timestamp: 01:05, action: impact, body_part: left_hand}, {timestamp: 01:06, action: impact, body_part: left_hand}] this only happens when there is contact made. 
+
   """
 
   # Set the model to Gemini 1.5 Pro.
