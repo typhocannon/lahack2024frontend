@@ -3,7 +3,7 @@ import websockets
 from bleak import BleakClient, BleakScanner
 
 haptic_devices = {}
-haptic_definition_client_names = {"Haptic Definition: Right Hand", "Haptic Definition: Left Hand", "Haptic Definition: Vest"}
+haptic_definition_client_names = {"Haptic Definition: Hands", "Haptic Definition: Vest"}
 
 async def connect_and_setup_device(device):
     client = BleakClient(device)
@@ -42,24 +42,60 @@ async def main_client(uri):
         try:
             async for message in websocket:
                 print("Received message:", message)
-                # change it to the correct formatting to send
-                # Check if the message is in bytes, decode for printing, send as is for GATT char
+                # change it to the correct formatting to understand
                 if isinstance(message, bytes):
                     # Decode for display purposes only
-                    decoded_message = message.decode('utf-8')
-                    print("Received message:", decoded_message)
-                    # No need to encode, message is already in bytes
-                    message_to_send = message
-                else:
-                    # Assume message is str and needs encoding
-                    print("Received message:", message)
-                    message_to_send = message.encode('utf-8')
-                # broadcast the message to all haptic devices
-                for device_name, device_info in haptic_devices.items():
+                    message = message.decode('utf-8')
+                print("Received message:", message)
+                # determine which device to broadcast the message to
+                if message == "ping":
+
+                    # broadcast the message to all haptic devices
+                    for device_name, device_info in haptic_devices.items():
+                        client = device_info["client"]
+                        characteristics = device_info["client_characteristics"]
+                        for characteristic in characteristics:
+                            await client.write_gatt_char(characteristic.uuid, message.encode('utf-8'), response=False)
+
+                    continue
+                # parse the message and see if it is a command to a specific device
+                command = message.split("-")
+                device_name = ""
+                if len(command) == 2:
+                    # command is right format
+                    action = command[0]
+                    part = command[1]
+
+                    # broadcast to the right device
+                    if part == "left_hand" or part == "right_hand":
+                        device_name = "Haptic Definition: Right Hand"
+                    elif part == "chest":
+                        device_name = "Haptic Definition: Vest"
+                    else:
+                        print("Invalid body part specified in command. Skipping.")
+
+                    if action == "hot" and part == "chest":
+                        # not implemented, skip
+                        device_name = ""
+                    elif action == "impact":
+                        if part == "left_hand" or part == "chest":
+                            message = "0"
+                        elif part == "right_hand":
+                            message = "1"
+                    elif action == "hot":
+                        if part == "left_hand":
+                            message = "2"
+                        elif part == "right_hand":
+                            message = "3"
+                                    # Check if the message is in bytes, decode for printing, send as is for GATT char
+                if len(device_name) > 0 and device_name in haptic_devices:
+                    device_info = haptic_devices[device_name]
                     client = device_info["client"]
                     characteristics = device_info["client_characteristics"]
                     for characteristic in characteristics:
-                        await client.write_gatt_char(characteristic.uuid, message_to_send, response=False)
+                        await client.write_gatt_char(characteristic.uuid, message.encode('utf-8'), response=False)
+
+                
 
         except websockets.exceptions.ConnectionClosed:
             print("Connection closed by server.")

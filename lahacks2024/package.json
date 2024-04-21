@@ -20,11 +20,13 @@
     "react-dom": "^18.2.0",
     "react-drag-drop-files": "^2.3.10",
     "stream-browserify": "^3.0.0",
+    "websocket": "^1.0.34",
     "ytdl-core": "^4.11.5"
   },
   "devDependencies": {
     "@types/react": "^18.2.66",
     "@types/react-dom": "^18.2.22",
+    "@types/websocket": "^1.0.10",
     "@typescript-eslint/eslint-plugin": "^7.2.0",
     "@typescript-eslint/parser": "^7.2.0",
     "@vitejs/plugin-react": "^4.2.1",
