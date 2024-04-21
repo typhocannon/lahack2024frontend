@@ -4,7 +4,7 @@
 #include <BLE2902.h>
 
 //BLE server name
-#define bleServerName "Haptic Definition: Right Hand"
+#define bleServerName "Haptic Definition: Vest"
 
 // Timer variables
 unsigned long lastTime = 0;
@@ -20,6 +20,17 @@ bool deviceConnected = false;
 BLECharacteristic bleTestCharacteristics("cba1d466-344c-4be3-ab3f-189f80dd7518", BLECharacteristic::PROPERTY_WRITE);
 BLEDescriptor bleTestDescriptor(BLEUUID((uint16_t)0x2902));
 
+const int vibrationPinLeft = 4;
+const int vibrationPinRight = 5;
+const int heatPinLeft = 6;
+const int heatPinRight = 7;
+
+void triggerPin(int seconds, int pin) {
+  // GPIO
+  digitalWrite(pin, HIGH);
+  delay(seconds * 1000);
+  digitalWrite(pin, LOW);
+}
 
 //Setup callbacks onConnect and onDisconnect
 class MyServerCallbacks: public BLEServerCallbacks {
@@ -28,6 +39,7 @@ class MyServerCallbacks: public BLEServerCallbacks {
     deviceConnected = true;
   };
   void onDisconnect(BLEServer* pServer) {
+    Serial.println("Disconnected");
     deviceConnected = false;
     BLEDevice::startAdvertising();
   };
@@ -43,6 +55,22 @@ class MyCallbacks: public BLECharacteristicCallbacks {
             for (int i = 0; i < value.length(); i++)
                 Serial.print(value[i]);
             Serial.println();
+            if (value == "0") {
+              Serial.println("Zero");
+              triggerPin(1, vibrationPinLeft);
+            }
+            if (value == "1") {
+              Serial.println("One");
+              triggerPin(1, vibrationPinRight);
+            }
+            if (value == "2") {
+              Serial.println("Two");
+              triggerPin(1, heatPinLeft);
+            }
+            if (value == "3") {
+              Serial.println("Three");
+              triggerPin(1, heatPinRight);
+            }
         }
     }
 };
@@ -51,6 +79,12 @@ void setup() {
   // Start serial communication 
   Serial.begin(115200);
   Serial.println("Starting BLE application");
+
+  pinMode(vibrationPinLeft, OUTPUT);
+  pinMode(vibrationPinRight, OUTPUT);
+
+  pinMode(heatPinLeft, OUTPUT);
+  pinMode(heatPinRight, OUTPUT);
 
   // Create the BLE Device
   BLEDevice::init(bleServerName);

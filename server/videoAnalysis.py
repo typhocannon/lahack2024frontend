@@ -186,16 +186,22 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
       while True:
         data = await websocket.receive_text()
-        await websocket.send_text(f"Message text was: {data}")
+        # await websocket.send_text(f"Message text was: {data}")
         # broadcast the message to all clients (will be the bluetooth client)
         for client_id, client in clients.items():
-            await client.send_text(data)
+            # just ignore sending to closed clients
+            try:
+              await client.send_text(data)
+            except Exception as e:
+              print(f"Error sending to client {client_id}: {e}")
+              
     except WebSocketDisconnect:
       await websocket.close()
       # remove the client from the clients dictionary
       for client_id, client in clients.items():
         if client == websocket:
           del clients[client_id]
+      print("Client disconnected")
 
 if __name__ == "__main__":
   uvicorn.run(app, host="127.0.0.1", port=5000)
