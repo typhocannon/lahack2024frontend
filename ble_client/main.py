@@ -66,5 +66,5 @@ async def main_client(uri):
         finally:
             connection_state["is_open"] = False
 
-uri = "ws://localhost:5000"
+uri = "ws://localhost:5000/ws"
 asyncio.run(main_client(uri))
