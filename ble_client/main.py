@@ -68,7 +68,7 @@ async def main_client(uri):
 
                     # broadcast to the right device
                     if part == "left_hand" or part == "right_hand":
-                        device_name = "Haptic Definition: Right Hand"
+                        device_name = "Haptic Definition: Hands"
                     elif part == "chest":
                         device_name = "Haptic Definition: Vest"
                     else:
@@ -88,7 +88,11 @@ async def main_client(uri):
                         elif part == "right_hand":
                             message = "3"
                                     # Check if the message is in bytes, decode for printing, send as is for GATT char
+                    print(haptic_devices)
+                    print(len(device_name))
+                    print(device_name in haptic_devices)
                 if len(device_name) > 0 and device_name in haptic_devices:
+                    print("Writing to device", device_name, "with message", message)
                     device_info = haptic_devices[device_name]
                     client = device_info["client"]
                     characteristics = device_info["client_characteristics"]
