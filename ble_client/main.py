@@ -66,16 +66,9 @@ async def main_client(uri):
                     action = command[0]
                     part = command[1]
 
-                    # broadcast to the right device
-                    if part == "left_hand" or part == "right_hand":
-                        device_name = "Haptic Definition: Hands"
-                    elif part == "chest":
-                        device_name = "Haptic Definition: Vest"
-                    else:
-                        print("Invalid body part specified in command. Skipping.")
-
                     # determine body part
                     if part == "chest":
+                        device_name = "chest"
                         # hardcode 
                         message = "2"
                         print("Writing to device", device_name, "with message", message)
@@ -87,12 +80,14 @@ async def main_client(uri):
                                 await client.write_gatt_char(characteristic.uuid, message.encode('utf-8'), response=False)
                         continue
                     elif part == "left_hand":
+                        device_name = "Haptic Definition: Vest"
                         if action == "hot":
                             message = "1"
                         else:
                             # impact
                             message = "0"
                     elif part == "right_hand":
+                        device_name = "Haptic Definition: Hands"
                         if action == "hot":
                             message = "1"
                         else:
